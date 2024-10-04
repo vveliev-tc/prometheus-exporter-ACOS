@@ -11,4 +11,4 @@ services:
     ports:
       - "9734:9734"
     volumes:
-      - ./src/config.yml:/app/config.yml
+      - ./src/:/app/

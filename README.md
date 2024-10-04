@@ -1,4 +1,5 @@
-## ACOS Prometheus Exporter
+# ACOS Prometheus Exporter (vThunder)
+
 The ACOS Prometheus Exporter module collects the ACOS device statistics (stats) and displays the results as metrics.
 
 To analyze the ACOS stats, configure any visualization client, such as Grafana, to query the stats from the Prometheus server, plot them, set thresholds, configure alerts, create heat maps, generate a table, and perform similar functions, as needed.
@@ -6,9 +7,10 @@ To analyze the ACOS stats, configure any visualization client, such as Grafana, 
 The Prometheus server works on a pull-based model and periodically queries the Exporter based on the intervals specified.  It runs by default on port 9090.
 
 Users and systems can:
+
 - Create and view dashboards by communicating with the Prometheus server using a Visualization and Analytics tool, like Grafana.
-- Configure the Exporter to communicate with multiple ACOS devices in a multi-cloud environment. 
-- Query any API stats configured in the Prometheus server’s YAML file. 
+- Configure the Exporter to communicate with multiple ACOS devices in a multi-cloud environment.
+- Query any API stats configured in the Prometheus server’s YAML file.
 
   The Exporter creates gauge metrics for each stats field and exposes them on port 9734.
 
@@ -20,7 +22,8 @@ More information on the configuration and the server YAML file will follow soon.
 
 ## Components of the solution
 
-#### 1) Exporter
+### 1) Exporter
+
 - Custom exporter is a python script/container which:
 - Invokes ACOS axAPIs to fetch the stats fields.
 - Exposes the queried stats in the form of Prometheus metrics.
@@ -28,7 +31,8 @@ More information on the configuration and the server YAML file will follow soon.
 - Exporter creates a Gauge metrics for each stats field and exposes the same on the port 9734
 
 Sample config.yml snippet:
-```
+
+```yaml
 ---
 hosts:
   <host_ip goes here>:
@@ -38,11 +42,12 @@ log:
   log_file: logs.log
   log_level: INFO
 ```
- - host_ip: ACOS instance IP which is to be monitored
- - log_level: Set log_level to DEBUG for debugging purposes. The default log_level is INFO.
- 
 
-#### 2) Prometheus Server
+- host_ip: ACOS instance IP which is to be monitored
+- log_level: Set log_level to DEBUG for debugging purposes. The default log_level is INFO.
+
+### 2) Prometheus Server
+
 Prometheus server is responsible for monitoring and continuous polling the stats filed that are exposed by the exporter.
 It refers to the prometheus.yml configuration file for polling.
 Prometheus server runs on port 9090 by default.
@@ -50,7 +55,7 @@ It can also send out the alerts to ITSM systems such as PagerDuty, ServiceNow, S
    
 Sample prometheus.yml config snippet: 
 
-```   
+```yaml
 global:
   scrape_interval:     15s
   evaluation_interval: 15s
@@ -102,7 +107,8 @@ global:
       api_name: ["_slb_dns"]
 ```
 
-#### 3) Visualization tool:
+### 3) Visualization tool:
+
 - Prometheus UI runs on port 9090 by default.
  - It has an in-built visualization functionality that displays the metrics information exposed by the exporter.
 - User can select the targets and get the all metrics for an end-point or can search for a specific metric by querying using Prometheus query language expression.
@@ -116,7 +122,7 @@ global:
 
 The exporter can be run as a standalone python script, built into a container. 
 
-#### Running as a standalone script 
+### Running as a standalone script 
 ```
 pip install -r requirements.txt
 python acos_exporter.py
@@ -127,13 +133,13 @@ python acos_exporter.py
 In order to use the exporter as a container, an image from docker hub can be used directly.
 
 Run the exporter using the below command. Replace the placeholder <local_path_to_config.yml> with the local path to config.yml
- 
+
  ```
 docker run -d -p 9734:9734 -v <local_path_to_config.yml>:/app/config.yml a10networks/acos-prometheus-exporter:latest
 ```
 
 To inspect the logs please follow the commands below:
- 
+
  ```
 docker ps
 ```
