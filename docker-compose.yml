@@ -6,7 +6,6 @@ services:
     container_name: prometheus-exporter-acos
     build:
       context: .
-      target: ${TARGET:-development}
       dockerfile: Dockerfile
     ports:
       - "9734:9734"
