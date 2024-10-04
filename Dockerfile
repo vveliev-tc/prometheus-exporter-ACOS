@@ -8,7 +8,7 @@ RUN apt-get install -y build-essential
 
 WORKDIR /app
 
-COPY . /app
+COPY src/ /app
 
 RUN pip3 install -r requirements.txt
 
