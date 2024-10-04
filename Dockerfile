@@ -1,10 +1,8 @@
 ARG PYTHON_VERSION=3.12
 ARG BASE_IMAGE=slim-bookworm
 
-FROM python:${PYTHON_VERSION}-${BASE_IMAGE} AS development
+FROM python:${PYTHON_VERSION}-${BASE_IMAGE}
 
-RUN apt-get update --fix-missing
-RUN apt-get install -y build-essential
 RUN pip install --upgrade pip
 
 WORKDIR /app
