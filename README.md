@@ -18,7 +18,7 @@ More information on the configuration and the server YAML file will follow soon.
 
 ## Architecture of the Prometheus setup
 
-![picture](img/prometheus.png)
+![picture](docs/img/prometheus.png)
 
 ## Components of the solution
 
@@ -69,9 +69,8 @@ global:
         api_endpoint: ["/slb/dns", "/slb/virtual-server/10.10.10.2/port/80+tcp", "/slb/fix"]
         api_name: ["_slb_dns", "_slb_virtual_server_10.10.10.2_port_80_tcp", "_slb_fix"]
 	partition: ["P1"]
-	
-```       
-   
+```
+
 - scrape_interval: time interval for querying stats fields
 - target: hostname and port that exporter is running on
 - api_endpoint: URI endpoint that exporter will intercept and invoke the appropriate axAPI. A comma seperated list of APIs can be provided here for a single host.
