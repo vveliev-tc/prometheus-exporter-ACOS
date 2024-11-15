@@ -1,6 +1,7 @@
 import json
 import yaml
 import sys
+import argparse
 from threading import Lock
 
 import prometheus_client
@@ -95,7 +96,7 @@ def getLabelNameFromA10URL(api_list):
 
 
 def getauth(host):
-    with open('config.yml') as f:
+    with open(config_file) as f:
         hosts_data = yaml.safe_load(f)["hosts"]
     if host not in hosts_data:
         logger.error("Host credentials not found in creds config")
@@ -301,8 +302,13 @@ def main():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='ACOS Prometheus Exporter')
+    parser.add_argument('-c', '--config', type=str, default='config.yml', help='Path to the configuration file')
+    args = parser.parse_args()
+    config_file = args.config
+
     try:
-        with open('config.yml') as f:
+        with open(config_file) as f:
             log_data = yaml.safe_load(f).get("log", {})
             logger = set_logger(log_data.get("log_file","exporter.log"), log_data.get("log_level","INFO"))
             logger.info("Starting exporter")
@@ -310,4 +316,3 @@ if __name__ == '__main__':
     except Exception as e:
         print(e)
         sys.exit()
-

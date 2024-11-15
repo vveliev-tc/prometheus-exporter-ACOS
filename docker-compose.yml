@@ -9,5 +9,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "9734:9734"
+    command: ["acos_exporter.py", "--config", "/local/config.yml"]
     volumes:
+      - ./examples/:/local/
       - ./src/:/app/
