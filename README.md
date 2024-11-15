@@ -110,10 +110,11 @@ global:
 
 ## Installation/ setup instructions:
 
-The exporter can be run as a standalone python script, built into a container. 
+The exporter can be run as a standalone python script, built into a container.
 
-### Running as a standalone script 
-```
+### Running as a standalone script
+
+```bash
 pip install -r requirements.txt
 python acos_exporter.py
 ```
