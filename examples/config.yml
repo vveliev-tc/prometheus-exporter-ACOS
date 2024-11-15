@@ -5,5 +5,5 @@ hosts:
     username: <uname goes here>
     password: <pwd goes here>
 log:
-  log_file: logs.log
-  log_level: INFO
+  log_level: DEBUG
+  # log_file: /app/log/acos_exporter.log
