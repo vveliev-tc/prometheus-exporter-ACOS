@@ -11,6 +11,8 @@ from flask import Response, Flask, request
 from prometheus_client import Gauge
 import logging
 from logging.handlers import RotatingFileHandler
+from logging import StreamHandler
+from flask.logging import default_handler
 
 UNDERSCORE = "_"
 SLASH = "/"
@@ -50,32 +52,38 @@ def get_valid_token(host_ip, to_call=False):
         lock1.release()
 
 
-def set_logger(log_file, log_level):
+def set_logger(log_file=None, log_level="INFO"):
     log_levels = {
-                'DEBUG': logging.DEBUG,
-                'INFO': logging.INFO,
-                'WARN': logging.WARN,
-                'ERROR': logging.ERROR,
-                'CRITICAL': logging.CRITICAL,
-            }
+        'DEBUG': logging.DEBUG,
+        'INFO': logging.INFO,
+        'WARN': logging.WARN,
+        'ERROR': logging.ERROR,
+        'CRITICAL': logging.CRITICAL,
+    }
     if log_level.upper() not in log_levels:
-        print(log_level.upper()+" is invalid log level, setting 'INFO' as default.")
+        print(log_level.upper() + " is an invalid log level, setting 'INFO' as default.")
         log_level = "INFO"
-    try:
-        log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
-        log_handler = RotatingFileHandler(log_file, maxBytes=LOG_FILE_SIZE, backupCount=2, encoding=None,
-                                          delay=True)
-        log_handler.setFormatter(log_formatter)
-        log_handler.setLevel(log_levels[log_level.upper()]) # log levels are in order, DEBUG includes logging at each level
-    except Exception as e:
-        raise Exception('Error while setting logger config.')
+
+    log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
+
+    if log_file:
+        log_handler = RotatingFileHandler(log_file, maxBytes=LOG_FILE_SIZE, backupCount=2, encoding=None, delay=True)
+    else:
+        log_handler = StreamHandler(sys.stdout)
+
+    log_handler.setFormatter(log_formatter)
+    log_handler.setLevel(log_levels[log_level.upper()])
 
     logging.getLogger("requests").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
     logger = logging.getLogger('a10_prometheus_exporter_logger')
     logger.setLevel(log_levels[log_level.upper()])
-    logger.addHandler(log_handler)
+
+    if not logger.handlers:
+        print("Adding logger handler")
+        logger.addHandler(log_handler)
+
     return logger
 
 
@@ -86,7 +94,7 @@ def getLabelNameFromA10URL(api_list):
             labelName = api.replace(SLASH, UNDERSCORE)
             labelName = labelName.replace(HYPHEN, UNDERSCORE)
             labelName = labelName.replace(PLUS, UNDERSCORE)
-            empty_list.append(labelName)   
+            empty_list.append(labelName)
         return empty_list
     else:
         labelName = api_list.replace(SLASH, UNDERSCORE)
@@ -102,8 +110,8 @@ def getauth(host):
         logger.error("Host credentials not found in creds config")
         return ''
     else:
-        uname = hosts_data[host].get('username','')
-        pwd = hosts_data[host].get('password','')
+        uname = hosts_data[host].get('username', '')
+        pwd = hosts_data[host].get('password', '')
         if not uname:
             logger.error("username not provided.")
         if not pwd:
@@ -130,26 +138,26 @@ def get(api_endpoints, endpoint, host_ip, headers):
             "batch-get-list": list()
         }
         for api_endpoint in api_endpoints:
-            body["batch-get-list"].append({"uri": "/axapi/v3" + api_endpoint })
-          
+            body["batch-get-list"].append({"uri": "/axapi/v3" + api_endpoint})
+
         batch_endpoint = "/batch-get"
         logger.info("Uri - " + endpoint + batch_endpoint)
         response = json.loads(
-            requests.post(endpoint+batch_endpoint, data=json.dumps(body), headers=headers, verify=False).content.decode('UTF-8'))
+            requests.post(endpoint + batch_endpoint, data=json.dumps(body), headers=headers, verify=False).content.decode('UTF-8'))
         logger.debug("AXAPI batch response - " + str(response))
 
         if 'response' in response and 'err' in response['response']:
             msg = response['response']['err']['msg']
             if str(msg).lower().__contains__("uri not found"):
-                logger.error("Request for api failed - batch-get"  + ", response - " + msg)
+                logger.error("Request for api failed - batch-get" + ", response - " + msg)
 
             elif str(msg).lower().__contains__("unauthorized"):
                 token = get_valid_token(host_ip, True)
                 if token:
-                    logger.info("Re-executing an api -", endpoint+batch_endpoint, " with the new token")
+                    logger.info("Re-executing an api -", endpoint + batch_endpoint, " with the new token")
                     headers = {'content-type': 'application/json', 'Authorization': token}
                     response = json.loads(
-                        requests.post(endpoint+batch_endpoint, data=json.dumps(body), headers=headers, verify=False).content.decode('UTF-8'))
+                        requests.post(endpoint + batch_endpoint, data=json.dumps(body), headers=headers, verify=False).content.decode('UTF-8'))
             else:
                 logger.error("Unknown error message - ", msg)
     except Exception as e:
@@ -161,11 +169,11 @@ def get(api_endpoints, endpoint, host_ip, headers):
 def get_partition(endpoint, headers):
     partition_endpoint = "/active-partition"
     response = json.loads(requests.get(endpoint + partition_endpoint, headers=headers, verify=False).content.decode('UTF-8'))
-    return "partition - "+str(response)
+    return "partition - " + str(response)
 
 
 def change_partition(partition, endpoint, headers):
-    partition_endpoint = "/active-partition/"+ str(partition)
+    partition_endpoint = "/active-partition/" + str(partition)
     logger.info("Uri - " + endpoint + partition_endpoint)
     try:
         requests.post(endpoint + partition_endpoint, headers=headers, verify=False)
@@ -173,9 +181,11 @@ def change_partition(partition, endpoint, headers):
         logger.exception(e)
     logger.info("Partition changed to " + partition)
 
+
 @app.route("/")
 def default():
     return "Please provide /metrics?query-params!"
+
 
 def generate_metrics(resp_data, api_name, partition, host_ip, key, res):
     api = str(api_name)
@@ -194,7 +204,7 @@ def generate_metrics(resp_data, api_name, partition, host_ip, key, res):
             key = key.replace(HYPHEN, UNDERSCORE)
         if key not in global_stats:
             current_api_stats[key] = Gauge(key, "api-" + api + "key-" + key,
-                                            labelnames=(["api_name", "partition", "host"]), )
+                                           labelnames=(["api_name", "partition", "host"]), )
             current_api_stats[key].labels(api_name=api, partition=partition, host=host_ip).set(resp_data[org_key])
             global_stats[key] = current_api_stats[key]
         elif key in global_stats:
@@ -207,56 +217,57 @@ def generate_metrics(resp_data, api_name, partition, host_ip, key, res):
     return res
 
 
-def parse_recursion(event, api_name, api_response, partition, host_ip, key,res, recursion = False):
+def parse_recursion(event, api_name, api_response, partition, host_ip, key, res, recursion=False):
     resp_data = dict()
-    if event == None:
+    if event is None:
         return
     if type(event) == dict and "stats" not in event and "rate" not in event:
         for item in event:
-            parse_recursion(event[item], api_name, api_response, partition, host_ip, key,res, recursion = True)
-                               
+            parse_recursion(event[item], api_name, api_response, partition, host_ip, key, res, recursion=True)
+
     elif type(event) == dict and "stats" in event:
         resp_data = event.get("stats", {})
         if recursion:
             api_name_slash = event.get("a10-url", "")
-            api_name = api_name_slash.replace("/axapi/v3","")
+            api_name = api_name_slash.replace("/axapi/v3", "")
             api_name = getLabelNameFromA10URL(api_name)
-        res = generate_metrics(resp_data, api_name, partition, host_ip, key,res)
-        
+        res = generate_metrics(resp_data, api_name, partition, host_ip, key, res)
+
     elif type(event) == dict and "rate" in event:
         resp_data = event.get("rate", {})
         if recursion:
             api_name_slash = event.get("a10-url", "")
-            api_name = api_name_slash.replace("/axapi/v3","")
+            api_name = api_name_slash.replace("/axapi/v3", "")
             api_name = getLabelNameFromA10URL(api_name)
-        res = generate_metrics(resp_data, api_name, partition, host_ip, key,res)
-        
+        res = generate_metrics(resp_data, api_name, partition, host_ip, key, res)
+
     else:
         logger.error("Stats not found for API name '{}' with response {}.".format(api_name, api_response))
-        #return "Stats not found for API name '{}' with response {}.".format(api_name, api_response)
-    
+        # return "Stats not found for API name '{}' with response {}.".format(api_name, api_response)
+
     return res
+
 
 @app.route("/metrics")
 def generic_exporter():
     logger.debug("---------------------------------------------------------------------------------------------------")
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    host_ip = request.args.get("host_ip","")
+    host_ip = request.args.get("host_ip", "")
     api_endpoints = request.args.getlist("api_endpoint")
     if not api_endpoints:
         with open("apis.txt") as file:
-            default_endpoint = file.readlines()   
+            default_endpoint = file.readlines()
             default_endpoint = [endpoint.strip() for endpoint in default_endpoint]
         api_endpoints = default_endpoint
         logger.error("api_endpoint are of default")
-        
+
     api_names = getLabelNameFromA10URL(api_endpoints)
     partition = request.args.get("partition", "shared")
     res = []
     if not host_ip:
         logger.error("host_ip is required. Exiting API endpoints - {}".format(api_endpoints))
         return "host_ip is required. Exiting API endpoints - {}".format(api_endpoints)
-   
+
     logger.info("Host = " + host_ip + "\t" +
                 "API = " + str(api_names))
     logger.info("Endpoint = " + str(api_endpoints))
@@ -288,8 +299,8 @@ def generic_exporter():
         try:
             key = list(api_response.keys())[0]
             event = api_response.get(key, {})
-            res = parse_recursion(event, api_name, api_response, partition, host_ip, key,res)
-                 
+            res = parse_recursion(event, api_name, api_response, partition, host_ip, key, res)
+
         except Exception as ex:
             logger.exception(ex.args[0])
             return api_endpoint + " has something missing."
@@ -310,7 +321,9 @@ if __name__ == '__main__':
     try:
         with open(config_file) as f:
             log_data = yaml.safe_load(f).get("log", {})
-            logger = set_logger(log_data.get("log_file","exporter.log"), log_data.get("log_level","INFO"))
+            logger = set_logger(log_data.get("log_file", None), log_data.get("log_level", "INFO"))
+            app.logger.removeHandler(default_handler)
+            app.logger.addHandler(logger.handlers[0])
             logger.info("Starting exporter")
             main()
     except Exception as e:
