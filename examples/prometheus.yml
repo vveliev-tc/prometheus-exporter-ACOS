@@ -1,0 +1,14 @@
+# Example Prometheus configuration for scraping ASOC prometheus exporter
+---
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  - job_name: 'acos-scraper-job'
+    static_configs:
+      - targets: ['localhost:9734']
+    metrics_path: '/metrics'    
+    params:
+        host_ip: ["10.43.12.122"]
+        api_endpoint: ["/slb/dns", "/slb/virtual-server/10.10.10.2/port/80+tcp", "/slb/fix"]
+        api_name: ["_slb_dns", "_slb_virtual_server_10.10.10.2_port_80_tcp", "_slb_fix"]
+partition: ["P1"]

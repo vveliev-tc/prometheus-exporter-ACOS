@@ -1,0 +1,9 @@
+# Example of a configuration file for ASOC prometheus exporter
+---
+hosts:
+  <host_ip goes here>:
+    username: <uname goes here>
+    password: <pwd goes here>
+log:
+  log_file: logs.log
+  log_level: INFO

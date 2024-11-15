@@ -1,24 +1,15 @@
 # ACOS Prometheus Exporter (vThunder)
 
-The ACOS Prometheus Exporter module collects the ACOS device statistics (stats) and displays the results as metrics.
+The ACOS Prometheus Exporter module collects ACOS device statistics and Exporter creates gauge metrics for each stats field and exposes them on port 9734.
 
-To analyze the ACOS stats, configure any visualization client, such as Grafana, to query the stats from the Prometheus server, plot them, set thresholds, configure alerts, create heat maps, generate a table, and perform similar functions, as needed.
+Users can:
 
-The Prometheus server works on a pull-based model and periodically queries the Exporter based on the intervals specified.  It runs by default on port 9090.
-
-Users and systems can:
-
-- Create and view dashboards by communicating with the Prometheus server using a Visualization and Analytics tool, like Grafana.
-- Configure the Exporter to communicate with multiple ACOS devices in a multi-cloud environment.
+- Configure the Exporter to communicate with multiple ACOS devices.
 - Query any API stats configured in the Prometheus server’s YAML file.
-
-  The Exporter creates gauge metrics for each stats field and exposes them on port 9734.
-
-More information on the configuration and the server YAML file will follow soon.
 
 ## Architecture of the Prometheus setup
 
-![picture](img/prometheus.png)
+![picture](docs/img/prometheus.png)
 
 ## Components of the solution
 
@@ -52,8 +43,8 @@ Prometheus server is responsible for monitoring and continuous polling the stats
 It refers to the prometheus.yml configuration file for polling.
 Prometheus server runs on port 9090 by default.
 It can also send out the alerts to ITSM systems such as PagerDuty, ServiceNow, Slack, etc.
-   
-Sample prometheus.yml config snippet: 
+
+Sample prometheus.yml config snippet:
 
 ```yaml
 global:
@@ -69,9 +60,8 @@ global:
         api_endpoint: ["/slb/dns", "/slb/virtual-server/10.10.10.2/port/80+tcp", "/slb/fix"]
         api_name: ["_slb_dns", "_slb_virtual_server_10.10.10.2_port_80_tcp", "_slb_fix"]
 	partition: ["P1"]
-	
-```       
-   
+```
+
 - scrape_interval: time interval for querying stats fields
 - target: hostname and port that exporter is running on
 - api_endpoint: URI endpoint that exporter will intercept and invoke the appropriate axAPI. A comma seperated list of APIs can be provided here for a single host.
@@ -83,7 +73,8 @@ api_endpoint and api_name (unique identifier for a job) are passed to the export
 Exporter invokes axAPI for port and fetches the stats fields, creates gauge metrics for each stats field and exposes the metrics to the Prometheus server.
 
 Sample prometheus.yml config snippet for automatic service discovery in Kubernetes:
-```
+
+```yml
 global:
   scrape_interval:     15s
   evaluation_interval: 15s
@@ -116,7 +107,6 @@ global:
 - A data source needs to be added as Prometheus in order to display metrics in the graphical form in Grafana.
 - A metrics can be queried by entering the stats field name in the query box (either in prometheus query page or graphana). eg: "curr_proxy", "total_fwd_bytes" etc.
 - Refer [Prometheus Querying](https://prometheus.io/docs/prometheus/latest/querying/basics/) for more information.
-
 
 ## Installation/ setup instructions:
 
