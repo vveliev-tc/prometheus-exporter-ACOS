@@ -11,5 +11,16 @@ services:
       - "9734:9734"
     command: ["acos_exporter.py", "--config", "/local/config.yml"]
     volumes:
-      - ./examples/:/local/
+      # - ./examples/:/local/
+      - ./.ci/:/local/
       - ./src/:/app/
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      # - ./examples/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./.ci/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command: "--config.file=/etc/prometheus/prometheus.yml"
